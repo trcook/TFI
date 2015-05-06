@@ -1,0 +1,138 @@
+prelims
+
+
+```r
+root_dir<-"/Users/tom/Documents/Programming/Restaurant kaggle"
+require(foreign)
+require(caret)
+require(caretEnsemble)
+#require(h2o)
+require(doSNOW)
+require(parallel)
+require(knitr)
+opts_chunk$set(eval=F,echo=T,purl=F)
+```
+
+get the requisite training data. convert into epoch time. that's seconds since jan 1 1970. it's a number, so who cares what it is. 
+
+
+```r
+train<-read.csv("train.csv")
+test<-read.csv("test.csv")
+train$Open.Date<-as.integer(
+  as.POSIXct(as.Date(train$Open.Date,format="%m/%d/%Y"),tz = "GMT"))
+test$Open.Date<-as.integer(
+  as.POSIXct(as.Date(test$Open.Date,format="%m/%d/%Y"),tz = "GMT"))
+levels(train$Type)<-c(levels(train$Type),"MB")
+partition<-createDataPartition(train$revenue,2)
+```
+
+I tried to mess with this as factors, but it didn't pan out. Then again, I know shit about factors. I ran this with oblimax rotations too. still little to no improvement. 
+
+
+```r
+require("psych")
+x<-fa(train[,grepl(names(train),pattern="P")],nfactors = 6,rotate = "varimax")
+trainfa<-cbind(
+  train[grepl(names(train),pattern=".*(rev|Open|Type|City|Group).*")],x$scores)
+testfa<-fa(
+  test[,grepl(names(test),pattern="P")],nfactors = 6,rotate = "varimax")
+test<-cbind(test[,],testfa$scores)
+train<-cbind(train,x$scores)
+```
+
+setup for parallel processing
+
+
+```r
+cl<-makeCluster(8)
+registerDoSNOW(cl)
+```
+
+I am abundantly aware that using this many folds will overfit the data, esp. when using gbm. but it has yeilded a decent score so far. 
+
+
+```r
+tc<-trainControl(method = 'cv',number = 70,repeats = 100)
+```
+
+i've been looking at this to try to get more diversity in the algorithms I use.
+methods tried: ANFIS (high rmse), bsTree(high rmse, correlates with gbm), rpart and rf (both correlate strongly with gbm but are slower)
+
+
+```r
+tl=list(
+  gbm=caretModelSpec(
+    method='gbm', 
+    tuneGrid=expand.grid(interaction.depth = c(3:5), 
+      n.trees = seq(500,5000,500), shrinkage = c(0.01,.1,.001) )  )
+   ,dnn=caretModelSpec(method='dnn',
+    tuneGrid=expand.grid(layer1=c(3),layer2=c(5),layer3=c(2),
+      hidden_dropout=c(.1,.2,.3),visible_dropout=c(.1,.2,.3)))
+   ,glmboost=caretModelSpec(
+    method='glmboost',tuneGrid=expand.grid(prune=T,mstop=c(100,200,300)) )
+)
+model_list <- caretList(
+  revenue~., data=train[,c(2,4,6:19,24:29,33,34,43)],
+  tuneList=tl,
+  trControl = tc
+  ,methodList=c('cubist')
+  )
+
+modelCor(resamples(model_list))
+```
+
+Running a greedy ensemble like this produces shitty rmse
+again, way overfitting here. I know. but it has been good for the score. low RMSE, even with high variance seems to pay off a bit here.
+I've run the stacked model using both glmboost, straight glm and rf. glmboost has performed the best (w.r.t. lowest rmse)
+
+
+```r
+greedy_ensemble <- caretEnsemble(model_list)
+summary(greedy_ensemble)
+
+glmensemble<-caretStack(  
+  model_list,
+  method='gbm'
+  ,tuneGrid = expand.grid(
+    interaction.depth = c(3:5),n.trees=seq(500,5000,500),shrinkage=.001)
+  ,trControl=trainControl(method='cv',number=110,repeats = 10)
+  )
+glmensemble
+```
+
+pulling in the sample submission and writing the results to a file called submit.csv.
+
+
+```r
+sample<-read.csv(file.path("sampleSubmission.csv"))
+submit<-predict(glmensemble,test)
+sample$Prediction<-submit
+write.csv(sample,file="submit.csv",row.names=F,col.names=F)
+```
+
+this can be used to see what other models (that don't correlate)
+
+
+```r
+tag <- read.csv("http://topepo.github.io/caret/tag_data.csv", row.names = 1)
+tag <- as.matrix(tag)
+
+## Select only models for regression
+regModels <- tag[tag[,"Regression"] == 1,]
+
+all <- 1:nrow(regModels)
+## Seed the analysis with the SVM model
+start <- grep("(gbm)", rownames(regModels), fixed = TRUE)
+pool <- all[all != start]
+
+## Select 4 model models by maximizing the Jaccard
+## dissimilarity between sets of models
+nextMods <- maxDissim(regModels[start,,drop = FALSE],
+                      regModels[pool, ],
+                      method = "Jaccard",
+                      n = 4)
+
+rownames(regModels)[c(start, nextMods)]
+```
+
