@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title></title>
+    <meta charset="utf-8">
+    <meta name="generator" content="knitr" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/7.3/styles/github.min.css">
+
+<style type="text/css">
+/* Derived from the Docco package by Jeremy Ashkenas: https://github.com/jashkenas/docco/ */
+body {
+    font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, FreeSerif, serif;
+    height:100%;
+    font-size: 16px;
+    line-height: 24px;
+    color: #30404f;
+    margin: 0;
+    padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #112233;
+    line-height: 1em;
+    font-weight: normal;
+    margin: 0 0 15px 0;
+}
+
+p {
+    margin: 0 0 15px 0;
+    font-size:17px;
+}
+
+#footer p{
+    margin:0;
+    font-size:12px;
+    text-align: center;
+}
+
+a{
+    color:#0088cc;
+    text-decoration:none;
+}
+
+a:hover,a:focus{
+    color:#005580;
+    text-decoration:underline;
+}
+
+#container {
+    position: relative;
+    margin: 0;
+    height:100%;
+}
+
+body > #container { height: auto; min-height: 100%; }
+
+table{
+    width:100%;
+    border: 0;
+    outline: 0;
+}
+
+td.docs{
+    width: 50%;
+    text-align: left;
+    vertical-align: top;
+    padding: 10px 25px 1px 50px;
+}
+
+
+td.code{
+    background: #f5f5ff;
+    padding: 10px 25px 1px 50px;
+    overflow-x: hidden;
+    vertical-align: top;
+}
+
+code{
+    font-size:12px;
+    margin: 0;
+    padding: 0;
+}
+
+td.docs code{
+    background: #f8f8ff;
+    border: 1px solid #dedede;
+    font-size: 80%;
+    padding: 0 0.2em;
+}
+
+td.docs img{
+  max-width: 100%;
+}
+
+pre code{
+    padding:2px 4px;
+    background:#f5f5ff;
+}
+
+td.code pre code{
+    line-height: 18px;
+}
+
+.pilwrap {
+    position: relative;
+}
+.pilcrow {
+    font: 12px Arial;
+    text-decoration: none;
+    color: rgb(69, 69, 69);
+    position: absolute;
+    top: 3px;
+    left: -20px;
+    padding: 1px 2px;
+    opacity: 0;
+}
+
+td.docs:hover .pilcrow {
+    opacity: 1;
+}
+
+blockquote {
+    border-left: 4px solid #DDD;
+    padding: 0 15px;
+    color: #777;
+}
+div.handler{
+      width: 5px;
+      padding: 0;
+      cursor: col-resize;
+      position: absolute;
+      z-index: 5;
+}
+</style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/7.3/highlight.min.js"></script>
+<script type="text/javascript">
+hljs.LANGUAGES.r=function(a){var b="([a-zA-Z]|\\.[a-zA-Z.])[a-zA-Z0-9._]*";return{c:[a.HCM,{b:b,l:b,k:{keyword:"function if in break next repeat else for return switch while try tryCatch|10 stop warning require library attach detach source setMethod setGeneric setGroupGeneric setClass ...|10",literal:"NULL NA TRUE FALSE T F Inf NaN NA_integer_|10 NA_real_|10 NA_character_|10 NA_complex_|10"},r:0},{cN:"number",b:"0[xX][0-9a-fA-F]+[Li]?\\b",r:0},{cN:"number",b:"\\d+(?:[eE][+\\-]?\\d*)?L\\b",r:0},{cN:"number",b:"\\d+\\.(?!\\d)(?:i\\b)?",r:0},{cN:"number",b:"\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d*)?i?\\b",r:0},{cN:"number",b:"\\.\\d+(?:[eE][+\\-]?\\d*)?i?\\b",r:0},{b:"`",e:"`",r:0},{cN:"string",b:'"',e:'"',c:[a.BE],r:0},{cN:"string",b:"'",e:"'",c:[a.BE],r:0}]}}(hljs);
+</script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <script src="http://yihui.name/media/js/center-images.js"></script>
+  </head>
+  <body>
+    <div id="container">
+      <table><!--table start-->
+<tr id="row1"><td class="docs"><div class="pilwrap"><a class="pilcrow" href="#row1">&para;</a></div><p>prelims</p></td><td class="code"><pre><code class="r">root_dir&lt;-&quot;/Users/tom/Documents/Programming/Restaurant kaggle&quot;
+require(foreign)
+require(caret)
+require(caretEnsemble)
+#require(h2o)
+require(doSNOW)
+require(parallel)
+require(knitr)
+opts_chunk$set(eval=F,echo=T,purl=F)
+</code></pre></td></tr><tr id="row2"><td class="docs"><div class="pilwrap"><a class="pilcrow" href="#row2">&para;</a></div>
+
+<p>get the requisite training data. convert into epoch time. that&#39;s seconds since jan 1 1970. it&#39;s a number, so who cares what it is. </p></td><td class="code"><pre><code class="r">train&lt;-read.csv(&quot;train.csv&quot;)
+test&lt;-read.csv(&quot;test.csv&quot;)
+train$Open.Date&lt;-as.integer(
+  as.POSIXct(as.Date(train$Open.Date,format=&quot;%m/%d/%Y&quot;),tz = &quot;GMT&quot;))
+test$Open.Date&lt;-as.integer(
+  as.POSIXct(as.Date(test$Open.Date,format=&quot;%m/%d/%Y&quot;),tz = &quot;GMT&quot;))
+levels(train$Type)&lt;-c(levels(train$Type),&quot;MB&quot;)
+partition&lt;-createDataPartition(train$revenue,2)
+</code></pre></td></tr><tr id="row3"><td class="docs"><div class="pilwrap"><a class="pilcrow" href="#row3">&para;</a></div>
+
+<p>I tried to mess with this as factors, but it didn&#39;t pan out. Then again, I know shit about factors. I ran this with oblimax rotations too. still little to no improvement. </p></td><td class="code"><pre><code class="r">require(&quot;psych&quot;)
+x&lt;-fa(train[,grepl(names(train),pattern=&quot;P&quot;)],nfactors = 6,rotate = &quot;varimax&quot;)
+trainfa&lt;-cbind(
+  train[grepl(names(train),pattern=&quot;.*(rev|Open|Type|City|Group).*&quot;)],x$scores)
+testfa&lt;-fa(
+  test[,grepl(names(test),pattern=&quot;P&quot;)],nfactors = 6,rotate = &quot;varimax&quot;)
+test&lt;-cbind(test[,],testfa$scores)
+train&lt;-cbind(train,x$scores)
+</code></pre></td></tr><tr id="row4"><td class="docs"><div class="pilwrap"><a class="pilcrow" href="#row4">&para;</a></div>
+
+<p>setup for parallel processing</p></td><td class="code"><pre><code class="r">cl&lt;-makeCluster(8)
+registerDoSNOW(cl)
+</code></pre></td></tr><tr id="row5"><td class="docs"><div class="pilwrap"><a class="pilcrow" href="#row5">&para;</a></div>
+
+<p>I am abundantly aware that using this many folds will overfit the data, esp. when using gbm. but it has yeilded a decent score so far. </p></td><td class="code"><pre><code class="r">tc&lt;-trainControl(method = &#39;cv&#39;,number = 70,repeats = 100)
+</code></pre></td></tr><tr id="row6"><td class="docs"><div class="pilwrap"><a class="pilcrow" href="#row6">&para;</a></div>
+
+<p>i&#39;ve been looking at this to try to get more diversity in the algorithms I use.
+methods tried: ANFIS (high rmse), bsTree(high rmse, correlates with gbm), rpart and rf (both correlate strongly with gbm but are slower)</p></td><td class="code"><pre><code class="r">tl=list(
+  gbm=caretModelSpec(
+    method=&#39;gbm&#39;, 
+    tuneGrid=expand.grid(interaction.depth = c(3:5), 
+      n.trees = seq(500,5000,500), shrinkage = c(0.01,.1,.001) )  )
+   ,dnn=caretModelSpec(method=&#39;dnn&#39;,
+    tuneGrid=expand.grid(layer1=c(3),layer2=c(5),layer3=c(2),
+      hidden_dropout=c(.1,.2,.3),visible_dropout=c(.1,.2,.3)))
+   ,glmboost=caretModelSpec(
+    method=&#39;glmboost&#39;,tuneGrid=expand.grid(prune=T,mstop=c(100,200,300)) )
+)
+model_list &lt;- caretList(
+  revenue~., data=train[,c(2,4,6:19,24:29,33,34,43)],
+  tuneList=tl,
+  trControl = tc
+  ,methodList=c(&#39;cubist&#39;)
+  )
+
+modelCor(resamples(model_list))
+</code></pre></td></tr><tr id="row7"><td class="docs"><div class="pilwrap"><a class="pilcrow" href="#row7">&para;</a></div>
+
+<p>Running a greedy ensemble like this produces shitty rmse
+again, way overfitting here. I know. but it has been good for the score. low RMSE, even with high variance seems to pay off a bit here.
+I&#39;ve run the stacked model using both glmboost, straight glm and rf. glmboost has performed the best (w.r.t. lowest rmse)</p></td><td class="code"><pre><code class="r">greedy_ensemble &lt;- caretEnsemble(model_list)
+summary(greedy_ensemble)
+
+glmensemble&lt;-caretStack(  
+  model_list,
+  method=&#39;gbm&#39;
+  ,tuneGrid = expand.grid(
+    interaction.depth = c(3:5),n.trees=seq(500,5000,500),shrinkage=.001)
+  ,trControl=trainControl(method=&#39;cv&#39;,number=110,repeats = 10)
+  )
+glmensemble
+</code></pre></td></tr><tr id="row8"><td class="docs"><div class="pilwrap"><a class="pilcrow" href="#row8">&para;</a></div>
+
+<p>pulling in the sample submission and writing the results to a file called submit.csv.</p></td><td class="code"><pre><code class="r">sample&lt;-read.csv(file.path(&quot;sampleSubmission.csv&quot;))
+submit&lt;-predict(glmensemble,test)
+sample$Prediction&lt;-submit
+write.csv(sample,file=&quot;submit.csv&quot;,row.names=F,col.names=F)
+</code></pre></td></tr><tr id="row9"><td class="docs"><div class="pilwrap"><a class="pilcrow" href="#row9">&para;</a></div>
+
+<p>this can be used to see what other models (that don&#39;t correlate)</p></td><td class="code"><pre><code class="r">tag &lt;- read.csv(&quot;http://topepo.github.io/caret/tag_data.csv&quot;, row.names = 1)
+tag &lt;- as.matrix(tag)
+
+## Select only models for regression
+regModels &lt;- tag[tag[,&quot;Regression&quot;] == 1,]
+
+all &lt;- 1:nrow(regModels)
+## Seed the analysis with the SVM model
+start &lt;- grep(&quot;(gbm)&quot;, rownames(regModels), fixed = TRUE)
+pool &lt;- all[all != start]
+
+## Select 4 model models by maximizing the Jaccard
+## dissimilarity between sets of models
+nextMods &lt;- maxDissim(regModels[start,,drop = FALSE],
+                      regModels[pool, ],
+                      method = &quot;Jaccard&quot;,
+                      n = 4)
+
+rownames(regModels)[c(start, nextMods)]
+</code></pre></td></tr><tr id="row10"><td class="docs"><div class="pilwrap"><a class="pilcrow" href="#row10">&para;</a></div>
+</td><td class="code"></td></tr>
+      </table><!--table end-->
+    </div>
+  <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+  <script src="http://yihui.name/knitr/js/docco-resize.js"></script>
+  </body>
+</html>
