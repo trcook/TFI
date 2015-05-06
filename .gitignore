@@ -11,3 +11,16 @@
 # produced vignettes
 vignettes/*.html
 vignettes/*.pdf
+building.Rmd
+building.html
+building.md
+building.txt
+cluster.R
+sampleSubmission.csv
+submit.csv
+test 2.csv
+test.csv
+test.csv.zip
+train 2.csv
+train.csv
+train.csv.zip
